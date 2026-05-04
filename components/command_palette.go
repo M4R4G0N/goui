@@ -15,7 +15,7 @@ type CommandPaletteComponent struct {
 	ID       string
 }
 
-func CommandPalette(cmds []Command) *CommandPaletteComponent {
+func CommandPalette(cmds ...Command) *CommandPaletteComponent {
 	return &CommandPaletteComponent{
 		Commands: cmds,
 		ID:       "goui-command-palette",

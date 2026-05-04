@@ -23,11 +23,18 @@ To use **goUI**, you need **Go 1.22 or later** installed on your system.
 ## 📦 Installation
 
 ```bash
+go mod init $(basename "$PWD") 
+
 go get github.com/M4R4G0N/goUI@v0.1.0
 ```
 
 ### 🔧 Troubleshooting: 404 / Checksum Errors
 If you see a `404 Not Found` or `checksum verification` error during installation, run these commands to fetch directly from the source:
+
+# try about checksum verification error in the terminal.
+```bash
+go clean -modcache
+```
 
 **Linux / macOS:**
 ```bash
