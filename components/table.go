@@ -4,26 +4,35 @@ import (
 	"fmt"
 )
 
-type DataTableComponent struct {
-	ID       string
-	Headers  []string
-	Rows     [][]string
-	Class    string
-	Style    Style
-	Attrs    Attr
-	SyncWith *FileUploaderComponent
+type TableComponent struct {
+	ID        string
+	Headers   []string
+	Rows      [][]string
+	Class     string
+	Style     Style
+	Attrs     Attr
+	SyncWith       *FileUploaderComponent
+	MaxHeight      string // E.g., "600px"
+	ExportFileName string
 }
 
-func (t *DataTableComponent) GetID() string {
+// MaxHeight sets the maximum height of the table with a scrollbar.
+type MaxHeight string
+
+// WithExport enables the CSV export button with a specific filename.
+type WithExport string
+
+func (t *TableComponent) GetID() string {
 	if t.ID == "" {
 		t.ID = AutoID()
 	}
 	return t.ID
 }
 
-// DataTable creates an interactive table that can be populated from CSV.
-func DataTable(headers []string, rows [][]string, opts ...any) *DataTableComponent {
-	t := &DataTableComponent{
+// Table creates an interactive table that can be populated from CSV.
+// It supports headers, rows, and optional MaxHeight via components.Style or raw string.
+func Table(headers []string, rows [][]string, opts ...any) *TableComponent {
+	t := &TableComponent{
 		Headers: headers,
 		Rows:    rows,
 	}
@@ -31,8 +40,14 @@ func DataTable(headers []string, rows [][]string, opts ...any) *DataTableCompone
 		switch v := opt.(type) {
 		case *FileUploaderComponent:
 			t.SyncWith = v
+		case MaxHeight:
+			t.MaxHeight = string(v)
+		case WithExport:
+			t.ExportFileName = string(v)
 		case string:
-			ParseStringAttr(v, &t.Class, &t.ID, &t.Attrs)
+			if !ParseStringAttr(v, &t.Class, &t.ID, &t.Attrs) {
+				t.MaxHeight = v
+			}
 		case Style:
 			t.Style = v
 		case Class:
@@ -46,7 +61,7 @@ func DataTable(headers []string, rows [][]string, opts ...any) *DataTableCompone
 	return t
 }
 
-func (t *DataTableComponent) Render() string {
+func (t *TableComponent) Render() string {
 	id := t.GetID()
 	
 	syncScript := ""
@@ -114,38 +129,51 @@ func (t *DataTableComponent) Render() string {
 		rowsHTML += "</tr>"
 	}
 
+	containerStyle := ""
+	if t.MaxHeight != "" {
+		containerStyle = fmt.Sprintf("max-height: %s; overflow-y: auto;", t.MaxHeight)
+	}
+
+	exportButton := ""
+	if t.ExportFileName != "" {
+		exportButton = fmt.Sprintf(`
+			<div class="goui-table-actions">
+				<button class="goui-btn goui-btn-sm goui-btn-secondary" onclick="exportTableToCSV('%s', '%s')" title="Exportar CSV">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+				</button>
+			</div>`, id, t.ExportFileName)
+	}
+
 	return fmt.Sprintf(`
 		<div class="goui-table-container %s" id="container-%s">
-			<div class="goui-table-actions">
-				<button class="goui-btn goui-btn-primary" onclick="exportTableToCSV('%s')">
-					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-					Exportar CSV
-				</button>
-			</div>
-			<div style="overflow-x: auto;">
+			%s
+			<div style="overflow-x: auto; %s">
 				<table class="goui-table" id="%s">
-					<thead><tr>%s</tr></thead>
+					<thead><tr style="position: sticky; top: 0; z-index: 10; background: var(--goui-surface-2);">%s</tr></thead>
 					<tbody>%s</tbody>
 				</table>
 			</div>
 			%s
 			<script>
-				window.exportTableToCSV = function(tableID) {
-					var table = document.getElementById(tableID);
-					var csv = [];
-					for (var i = 0; i < table.rows.length; i++) {
-						var row = [], cols = table.rows[i].cells;
-						for (var j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
-						csv.push(row.join(","));
-					}
-					var csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
-					var downloadLink = document.createElement("a");
-					downloadLink.download = "export_goui.csv";
-					downloadLink.href = window.URL.createObjectURL(csvFile);
-					downloadLink.style.display = "none";
-					document.body.appendChild(downloadLink);
-					downloadLink.click();
-				};
+				if (typeof window.exportTableToCSV !== 'function') {
+					window.exportTableToCSV = function(tableID, filename) {
+						var table = document.getElementById(tableID);
+						var csv = [];
+						for (var i = 0; i < table.rows.length; i++) {
+							var row = [], cols = table.rows[i].cells;
+							for (var j = 0; j < cols.length; j++) row.push('"' + cols[j].innerText + '"');
+							csv.push(row.join(","));
+						}
+						var csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+						var downloadLink = document.createElement("a");
+						downloadLink.download = filename || "export.csv";
+						downloadLink.href = window.URL.createObjectURL(csvFile);
+						downloadLink.style.display = "none";
+						document.body.appendChild(downloadLink);
+						downloadLink.click();
+						document.body.removeChild(downloadLink);
+					};
+				}
 			</script>
-		</div>`, t.Class, id, id, id, headerHTML, rowsHTML, syncScript)
+		</div>`, t.Class, id, exportButton, containerStyle, id, headerHTML, rowsHTML, syncScript)
 }

@@ -37,8 +37,9 @@ func (h HTML) Render() string { return string(h) }
 type PageLayout int
 
 const (
-	LayoutFull     PageLayout = iota // fills available width (default)
-	LayoutCentered                   // constrained to max-width and centered
+	LayoutNarrow   PageLayout = iota // constrained to ~730px, Streamlit-style — default
+	LayoutFull                       // fills available width
+	LayoutCentered                   // constrained to ~900px and centered
 )
 
 // Page represents a full HTML document with a top header, sidebar, and main content.
@@ -69,8 +70,11 @@ func (p *Page) Render() string {
 	}
 
 	bodyHTML := p.Body.Render()
-	if p.Layout == LayoutCentered {
+	switch p.Layout {
+	case LayoutCentered:
 		bodyHTML = `<div class="goui-body-centered">` + bodyHTML + `</div>`
+	case LayoutNarrow:
+		bodyHTML = `<div class="goui-body-narrow">` + bodyHTML + `</div>`
 	}
 
 	return `<!DOCTYPE html>

@@ -34,6 +34,14 @@ func Div(args ...any) *DivComponent {
 			d.Attrs = v
 		case Component:
 			d.Children = append(d.Children, v)
+		case []Component:
+			d.Children = append(d.Children, v...)
+		case []any:
+			for _, item := range v {
+				if comp, ok := item.(Component); ok {
+					d.Children = append(d.Children, comp)
+				}
+			}
 		}
 	}
 	return d

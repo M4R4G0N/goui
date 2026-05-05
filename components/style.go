@@ -28,11 +28,19 @@ func (c CSS) Render() string { return string(c) }
 // Class is a CSS class name passed as an option to Text, Div, etc.
 type Class string
 
+const (
+	Block Class = "goui-btn-block"
+)
+
 // ID sets the HTML id attribute.
 type ID string
 
 // Attr represents arbitrary HTML attributes (e.g. data-*, onchange).
 type Attr map[string]string
+
+var (
+	Disabled = Attr{"disabled": "true"}
+)
 
 // ParseStringAttr checks if a string is an attribute like 'class="my-class"'.
 // It extracts the key and value, applying it to class, id, or attrs appropriately.

@@ -1,6 +1,6 @@
 # goUI 🚀
 
-![Version](https://img.shields.io/badge/version-v0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.1.1-blue.svg)
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=flat&logo=go&logoColor=white)
 
 **goUI** is a lightweight, high-performance Go library for building server-rendered web interfaces using a component-based model and file-based routing.
@@ -25,7 +25,7 @@ To use **goUI**, you need **Go 1.22 or later** installed on your system.
 ```bash
 go mod init $(basename "$PWD") 
 
-go get github.com/M4R4G0N/goUI@v0.1.0
+go get github.com/M4R4G0N/goUI@v0.1.1
 ```
 
 ### 🔧 Troubleshooting: 404 / Checksum Errors
@@ -40,14 +40,14 @@ go clean -modcache
 ```bash
 export GOPROXY=direct
 export GONOSUMDB=github.com/M4R4G0N/goUI
-go get github.com/M4R4G0N/goUI@v0.1.0
+go get github.com/M4R4G0N/goUI@v0.1.1
 ```
 
 **Windows (PowerShell):**
 ```powershell
 $env:GOPROXY="direct"
 $env:GONOSUMDB="github.com/M4R4G0N/goUI"
-go get github.com/M4R4G0N/goUI@v0.1.0
+go get github.com/M4R4G0N/goUI@v0.1.1
 ```
 
 ---

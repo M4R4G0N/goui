@@ -9,6 +9,7 @@ const (
 	Primary   ButtonVariant = "primary"
 	Ghost     ButtonVariant = "ghost"
 	Secondary ButtonVariant = "secondary"
+	Danger    ButtonVariant = "danger"
 )
 
 // SubmitAction represents a server-side call configuration.

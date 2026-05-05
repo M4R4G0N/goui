@@ -35,13 +35,13 @@ func (s *SnippetComponent) Render() string {
 	codeID := s.ID + "-code"
 	bodyID := s.ID + "-body"
 	arrowID := s.ID + "-arrow"
-	
+
 	return fmt.Sprintf(`
 		<div class="goui-code-section">
 			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 			<div class="goui-code-header" style="cursor: pointer" onclick="toggleSnippet('%s', '%s')">
 				<div class="goui-flex goui-items-center goui-gap-10">
-					<span id="%s" style="transition: transform 0.2s; display: inline-block;">▼</span>
+					<span id="%s" style="transition: transform 0.2s; display: inline-block; color: #e5e5e5 !important;">▼</span>
 					<span class="goui-code-header-label">%s</span>
 				</div>
 				<button class="goui-btn goui-btn-sm goui-btn-ghost" onclick="event.stopPropagation(); copySnippet('%s')">Copy</button>

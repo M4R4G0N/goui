@@ -28,39 +28,35 @@ func (i *InputComponent) GetID() string {
 	return i.ID
 }
 
+// Placeholder sets the input placeholder text.
+type Placeholder string
+
 // Type represents the HTML input type (text, color, number, etc).
 type Type string
 
 // Input creates a new input component with variadic options.
-// It defaults to type="text".
-//
-// Examples:
-//
-//	Input("text", Name("username"))
-//	Input("color", "id=my-picker")
-//	Input("number", Class("form-control"))
 func Input(opts ...any) *InputComponent {
 	i := &InputComponent{Type: "text"}
 	for _, opt := range opts {
 		switch v := opt.(type) {
 		case string:
 			if !ParseStringAttr(v, &i.Class, &i.ID, &i.Attrs) {
-				// Smart detection: common input types vs name
 				types := map[string]bool{
 					"text": true, "password": true, "color": true, "date": true,
-					"datetime-local": true, "email": true, "file": true, "hidden": true,
-					"image": true, "month": true, "number": true, "range": true,
-					"reset": true, "search": true, "submit": true, "tel": true,
-					"time": true, "url": true, "week": true, "checkbox": true, "radio": true,
+					"email": true, "number": true, "checkbox": true, "radio": true,
 				}
 				if types[v] {
 					i.Type = v
+				} else if i.Placeholder == "" {
+					i.Placeholder = v
 				} else if i.Name == "" {
 					i.Name = v
 				} else {
 					i.Value = v
 				}
 			}
+		case Placeholder:
+			i.Placeholder = string(v)
 		case Type:
 			i.Type = string(v)
 		case Name:
@@ -100,9 +96,11 @@ func (i *InputComponent) Render() string {
 	if i.Placeholder != "" {
 		attrs = append(attrs, fmt.Sprintf(`placeholder="%s"`, i.Placeholder))
 	}
+	fullClass := "goui-input"
 	if i.Class != "" {
-		attrs = append(attrs, fmt.Sprintf(`class="%s"`, i.Class))
+		fullClass += " " + i.Class
 	}
+	attrs = append(attrs, fmt.Sprintf(`class="%s"`, fullClass))
 	if len(i.Style) > 0 {
 		attrs = append(attrs, fmt.Sprintf(`style="%s"`, i.Style.Render()))
 	}
