@@ -6,6 +6,55 @@ const ThemeScript = `<script>
 (function(){var t=localStorage.getItem('goui-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
 function gouiToggleTheme(){var el=document.documentElement;var dark=el.getAttribute('data-theme')==='dark'||(el.getAttribute('data-theme')!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);var next=dark?'light':'dark';el.setAttribute('data-theme',next);localStorage.setItem('goui-theme',next);}
 function gouiToggleGroup(btn){var items=btn.nextElementSibling;var open=items.classList.toggle('open');btn.setAttribute('aria-expanded',open);}
+function gouiToggleSidebar(){var sb=document.querySelector('.goui-sidebar');if(sb)sb.classList.toggle('mobile-open');}
+window.goui = {
+	action: async function(id, params = {}) {
+		const url = new URL('/api/goui/action', window.location.origin);
+		url.searchParams.append('id', id);
+		for (let key in params) { 
+			if (Array.isArray(params[key])) {
+				params[key].forEach(v => url.searchParams.append(key, v));
+			} else {
+				url.searchParams.append(key, params[key]); 
+			}
+		}
+		const r = await fetch(url);
+		if (!r.ok) throw new Error('Falha na ação: ' + id);
+		return await r.text();
+	},
+	selectOption: function(id, val, label) {
+		const input = document.getElementById(id);
+		if (input) {
+			input.value = val;
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+		const btn = document.getElementById('btn-' + id);
+		if (btn) {
+			const txt = btn.querySelector('.selected-text');
+			if (txt) txt.innerText = label;
+		}
+		const menu = document.getElementById('menu-' + id);
+		if (menu) menu.style.display = 'none';
+	}
+};
+window.gouiSelectOption = window.goui.selectOption;
+function gouiToast(msg, type='info'){
+	var cont = document.getElementById('goui-toast-container');
+	if(!cont){
+		cont = document.createElement('div');
+		cont.id = 'goui-toast-container';
+		cont.className = 'goui-toast-container';
+		document.body.appendChild(cont);
+	}
+	var t = document.createElement('div');
+	t.className = 'goui-toast goui-toast-' + type;
+	t.innerHTML = '<span>' + msg + '</span>';
+	cont.appendChild(t);
+	setTimeout(() => { t.classList.add('show'); }, 10);
+	setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 4000);
+}
+window.onerror = function(msg, url, line){ gouiToast('Erro: ' + msg + ' (Linha ' + line + ')', 'error'); return false; };
+window.onunhandledrejection = function(e){ gouiToast('Promessa Rejeitada: ' + e.reason, 'error'); };
 </script>`
 
 // Theme is the goui built-in CSS injected automatically via Headbar.
@@ -32,8 +81,47 @@ const Theme = `
   --goui-primary-hover: #6d28d9;
   --goui-primary-dim: rgba(124, 58, 237, 0.1);
   --goui-radius: 8px;
+}
+
+/* --- Custom Scrollbar --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--goui-border);
+  border-radius: 10px;
+  border: 2px solid var(--goui-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--goui-text-muted);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--goui-border) transparent;
+}
+
+body {
   --goui-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --goui-font: 'Inter', -apple-system, system-ui, sans-serif;
+  background: var(--goui-bg);
+  color: var(--goui-text);
+  font-family: var(--goui-font);
+  font-size: 16px;
+  line-height: 1.6;
+  transition: background .2s, color .2s;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Dark via OS preference (unless user manually chose light) */
@@ -227,6 +315,19 @@ body {
 
 .goui-sidebar-link-child:hover {
   border-left-color: var(--goui-primary);
+}
+
+/* ── Nested NavGroup (NavGroup inside NavGroup) ── */
+.goui-nav-group-inner > .goui-nav-group > .goui-nav-group-btn {
+  font-size: .8rem;
+  padding: .38rem .75rem .38rem 1.1rem;
+  color: var(--goui-text-muted);
+}
+
+.goui-nav-group-inner > .goui-nav-group > .goui-nav-group-items
+  .goui-sidebar-link-child {
+  padding-left: 2rem;
+  font-size: .8rem;
 }
 
 .goui-sidebar-footer {
@@ -427,21 +528,25 @@ a:hover { text-decoration: underline; }
 .goui-justify-center { justify-content: center; }
 
 /* --- Dropdown / Select --- */
+/* --- Dropdown / Select --- */
 .goui-dropdown {
   position: relative;
-  display: inline-block;
+  display: block; /* Mudar para block ajuda na estabilidade do grid */
   width: 100%;
+  z-index: 10;
 }
 
 .goui-dropdown-arrow {
   position: absolute;
-  right: .65rem;
+  right: .85rem;
   top: 50%;
-  transform: translateY(-50%);
+  margin-top: -8px; /* Usar margem em vez de transform:translateY evita bugs de renderização em alguns browsers */
+  height: 16px;
   pointer-events: none;
   color: var(--goui-text-muted);
   display: flex;
   align-items: center;
+  transition: transform .2s ease;
 }
 
 .goui-select {
@@ -450,14 +555,15 @@ a:hover { text-decoration: underline; }
   width: 100%;
   background: var(--goui-surface);
   border: 1px solid var(--goui-border);
-  border-radius: 6px;
+  border-radius: var(--goui-radius);
   color: var(--goui-text);
   font-family: var(--goui-font);
-  font-size: .875rem;
-  padding: .55rem 2.25rem .55rem .75rem;
+  font-size: .95rem;
+  padding: .7rem 2.5rem .7rem .9rem;
   cursor: pointer;
   outline: none;
-  transition: border-color .15s, box-shadow .15s;
+  transition: all .2s ease;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .goui-select:focus {
@@ -467,6 +573,227 @@ a:hover { text-decoration: underline; }
 
 .goui-select:hover {
   border-color: var(--goui-primary);
+  background: var(--goui-primary-dim);
+  color: var(--goui-primary);
+}
+
+.goui-select:hover .goui-dropdown-arrow {
+  color: var(--goui-primary);
+  transform: translateY(2px);
+}
+
+/* --- Custom Dropdown Menu --- */
+.goui-dropdown-menu {
+  background: var(--goui-surface);
+  border: 1px solid var(--goui-border);
+  border-radius: var(--goui-radius);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  list-style: none;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.goui-dropdown-item {
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--goui-text);
+  transition: all 0.2s;
+}
+
+.goui-dropdown-item:hover {
+  background: var(--goui-primary-dim);
+  color: var(--goui-primary);
+}
+
+.goui-dropdown-item.active {
+  background: var(--goui-primary);
+  color: #fff;
+}
+
+/* --- Custom Calendar --- */
+.goui-calendar-popup {
+  background: var(--goui-surface);
+  border: 1px solid var(--goui-border);
+  border-radius: var(--goui-radius);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  width: 280px;
+}
+
+.goui-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  gap: 5px;
+}
+
+.goui-calendar-header select {
+  appearance: none;
+  background: var(--goui-bg);
+  border: 1px solid var(--goui-border);
+  border-radius: 6px;
+  padding: 4px 28px 4px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--goui-text);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: all 0.2s ease;
+}
+
+.goui-calendar-header select:hover {
+  border-color: var(--goui-primary);
+  background-color: var(--goui-primary-dim);
+}
+
+/* Reduzir fonte e compactar dropdowns dentro do cabeçalho do calendário */
+.goui-calendar-header .goui-select {
+  font-size: 0.8rem;
+  padding: 4px 25px 4px 10px;
+}
+
+.goui-calendar-header .goui-dropdown-item {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.goui-calendar-header button {
+  background: var(--goui-primary-dim);
+  color: var(--goui-primary);
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.goui-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.goui-calendar-day-head {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--goui-text-muted);
+  padding-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.goui-calendar-day {
+  text-align: center;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  background: rgba(0,0,0,0.02);
+}
+
+.goui-calendar-day:hover {
+  background: var(--goui-primary-dim);
+  color: var(--goui-primary);
+}
+
+.goui-calendar-day.selected {
+  background: var(--goui-primary) !important;
+  color: #fff !important;
+  font-weight: bold;
+}
+
+.goui-calendar-day.in-range {
+  background: var(--goui-primary-dim);
+  color: var(--goui-primary);
+  border-radius: 0;
+}
+
+.goui-calendar-day.today {
+  border: 1px solid var(--goui-primary);
+  color: var(--goui-primary);
+  font-weight: bold;
+}
+
+.goui-calendar-day.outside {
+  color: var(--goui-text-muted);
+  opacity: 0.3;
+}
+
+.goui-calendar-footer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--goui-border);
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--goui-text-muted);
+}
+
+/* --- Toast Notifications --- */
+.goui-toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.goui-toast {
+  min-width: 280px;
+  max-width: 400px;
+  padding: 1rem 1.25rem;
+  background: var(--goui-surface);
+  color: var(--goui-text);
+  border-radius: var(--goui-radius);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid var(--goui-primary);
+  display: flex;
+  align-items: center;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(10px);
+}
+
+.goui-toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.goui-toast-success { border-left-color: #10b981; }
+.goui-toast-error   { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+.goui-toast-warning { border-left-color: #f59e0b; }
+.goui-toast-info    { border-left-color: #3b82f6; }
+
+/* --- Input with Icons --- */
+.goui-input-icon-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.goui-input-icon {
+  position: absolute;
+  right: 0.9rem;
+  color: var(--goui-text-muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.goui-calendar-input {
+  padding-right: 2.5rem !important; /* Abre espaço para o ícone */
 }
 
 /* Multiselect — modern card style */
@@ -603,7 +930,7 @@ a:hover { text-decoration: underline; }
   padding: 2.5rem 1.5rem;
   min-height: 160px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
 }
 
@@ -951,11 +1278,12 @@ input:checked + .goui-toggle-slider:before {
 }
 
 .goui-table th {
-  background: var(--goui-surface-2);
+  background: #f3f0ff;
+  color: #553c9a;
   padding: 12px 15px;
   text-align: left;
   font-weight: bold;
-  border-bottom: 2px solid var(--goui-border);
+  border-bottom: 2px solid #e9d8fd;
 }
 
 .goui-table td {
@@ -1016,6 +1344,8 @@ input:checked + .goui-toggle-slider:before {
   margin: 0; 
   text-align: left !important; 
   overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
 }
 .goui-code-block code { background: transparent !important; color: inherit !important; white-space: pre; display: block; text-align: left; }
 
@@ -1115,5 +1445,461 @@ input:checked + .goui-toggle-slider:before {
   color: var(--goui-primary);
 }
 
-</style>
-`
+
+/* --- Layout Shell (Standard Page) --- */
+.goui-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.goui-sidebar {
+  width: 260px;
+  min-width: 260px;
+  height: 97vh;
+  position: sticky;
+  top: 0;
+  background: var(--goui-surface);
+  border-right: 1px solid var(--goui-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.goui-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--goui-surface-2);
+  justify-content: flex-start; /* Centraliza verticalmente */
+  align-items: center;    /* Centraliza horizontalmente */
+}
+
+/* --- Centered layout (LayoutCentered) --- */
+.goui-body-centered {
+  max-width: 900px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.goui-header {
+  height: 64px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  background: var(--goui-primary);
+  color: white;
+}
+
+.goui-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.goui-header-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.goui-sidebar-title {
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--goui-primary);
+}
+
+.goui-sidebar-nav {
+  flex: 1;
+  padding: 1rem 0;
+  overflow-y: auto;
+}
+
+.goui-sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--goui-border);
+}
+
+/* --- Grid System --- */
+.goui-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+.goui-col-1 { grid-column: span 1; }
+.goui-col-2 { grid-column: span 2; }
+.goui-col-3 { grid-column: span 3; }
+.goui-col-4 { grid-column: span 4; }
+.goui-col-5 { grid-column: span 5; }
+.goui-col-6 { grid-column: span 6; }
+.goui-col-7 { grid-column: span 7; }
+.goui-col-8 { grid-column: span 8; }
+.goui-col-9 { grid-column: span 9; }
+.goui-col-10 { grid-column: span 10; }
+.goui-col-11 { grid-column: span 11; }
+.goui-col-12 { grid-column: span 12; }
+
+@media (max-width: 768px) {
+  .goui-grid {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 15px;
+  }
+  [class*="goui-col-"] {
+    grid-column: span 1 !important;
+  }
+}
+
+/* --- Responsive Mobile Rules --- */
+@media (max-width: 768px) {
+  .goui-sidebar {
+    display: none; /* Hide sidebar on small screens for now */
+  }
+  .goui-layout {
+    flex-direction: column;
+  }
+  .goui-main {
+    padding: 1.25rem !important;
+  }
+  .goui-body-narrow, .goui-body-centered {
+    max-width: 100% !important;
+    padding: 0 10px;
+  }
+  .goui-pg-split {
+    flex-direction: column !important;
+  }
+  .goui-pg-code, .goui-pg-preview {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .goui-header {
+    padding: 0 1rem;
+  }
+  .goui-flex {
+    flex-direction: column !important;
+  }
+  .goui-flex-row {
+    flex-direction: column !important; /* Stack rows on mobile */
+  }
+  .goui-gap-20 {
+    gap: 10px !important;
+  }
+  .goui-sidebar.mobile-open {
+    display: flex !important;
+    position: fixed;
+    top: 52px;
+    left: 0;
+    width: 80%;
+    max-width: 300px;
+    height: calc(100vh - 52px);
+    z-index: 1000;
+    box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  .goui-mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #fff;
+    margin-right: 1rem;
+    cursor: pointer;
+  }
+}
+
+.goui-mobile-menu-btn { display: none; }
+
+/* ─── Checkbox ─────────────────────────────────────────────────────────── */
+.goui-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: .9rem;
+  color: var(--goui-text);
+}
+
+.goui-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
+
+.goui-checkbox-box {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--goui-border);
+  border-radius: 4px;
+  background: var(--goui-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+}
+
+.goui-checkbox-label:hover .goui-checkbox-box {
+  border-color: var(--goui-primary);
+}
+
+.goui-checkbox-input:checked + .goui-checkbox-box {
+  background: var(--goui-primary);
+  border-color: var(--goui-primary);
+}
+
+.goui-checkbox-input:checked + .goui-checkbox-box::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(42deg) translateY(-1px);
+}
+
+.goui-checkbox-input:focus-visible + .goui-checkbox-box {
+  box-shadow: 0 0 0 3px var(--goui-primary-dim);
+}
+
+.goui-checkbox-input:disabled + .goui-checkbox-box {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.goui-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.goui-checkbox-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-top: .4rem;
+}
+
+/* ─── Radio ─────────────────────────────────────────────────────────────── */
+.goui-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.goui-radio-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-top: .4rem;
+}
+
+.goui-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: .9rem;
+  color: var(--goui-text);
+}
+
+.goui-radio-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
+
+.goui-radio-circle {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--goui-border);
+  border-radius: 50%;
+  background: var(--goui-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+}
+
+.goui-radio-label:hover .goui-radio-circle {
+  border-color: var(--goui-primary);
+}
+
+.goui-radio-input:checked + .goui-radio-circle {
+  border-color: var(--goui-primary);
+}
+
+.goui-radio-input:checked + .goui-radio-circle::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  background: var(--goui-primary);
+  border-radius: 50%;
+}
+
+.goui-radio-input:focus-visible + .goui-radio-circle {
+  box-shadow: 0 0 0 3px var(--goui-primary-dim);
+}
+
+.goui-radio-input:disabled + .goui-radio-circle {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* ─── Textarea ──────────────────────────────────────────────────────────── */
+.goui-textarea {
+  resize: none;
+  overflow: hidden;
+  min-height: 80px;
+  line-height: 1.6;
+}
+
+/* ─── TagInput ──────────────────────────────────────────────────────────── */
+.goui-taginput {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  background: var(--goui-surface);
+  border: 1px solid var(--goui-border);
+  border-radius: var(--goui-radius);
+  padding: .5rem .75rem;
+  min-height: 44px;
+  transition: border-color .2s;
+  cursor: text;
+}
+
+.goui-taginput:focus-within {
+  border-color: var(--goui-primary);
+  box-shadow: 0 0 0 3px var(--goui-primary-dim);
+}
+
+.goui-taginput-chips {
+  display: contents; /* chips flow inline with the text field */
+}
+
+.goui-taginput-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--goui-primary-dim);
+  color: var(--goui-primary);
+  font-size: .8rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.goui-taginput-remove {
+  background: none;
+  border: none;
+  color: var(--goui-primary);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 1px;
+  display: flex;
+  align-items: center;
+  opacity: .7;
+  transition: opacity .15s;
+}
+
+.goui-taginput-remove:hover { opacity: 1; }
+
+.goui-taginput-field {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--goui-text);
+  font-family: var(--goui-font);
+  font-size: .9rem;
+  flex: 1;
+  min-width: 100px;
+}
+
+.goui-taginput-field::placeholder { color: var(--goui-text-muted); opacity: .5; }
+
+/* ─── ColorPicker ───────────────────────────────────────────────────────── */
+.goui-colorpicker {
+  display: inline-flex;
+  align-items: center;
+  gap: .75rem;
+  background: var(--goui-surface);
+  border: 1px solid var(--goui-border);
+  border-radius: var(--goui-radius);
+  padding: .45rem .85rem;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+
+.goui-colorpicker:hover { border-color: var(--goui-primary); }
+
+.goui-colorpicker-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 2px solid rgba(0,0,0,.1);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform .15s;
+}
+
+.goui-colorpicker-swatch:hover { transform: scale(1.1); }
+
+.goui-colorpicker-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.goui-colorpicker-hex {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: .82rem;
+  color: var(--goui-text-muted);
+  letter-spacing: .04em;
+}
+
+/* ─── Form ──────────────────────────────────────────────────────────────── */
+.goui-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ─── Field error message ───────────────────────────────────────────────── */
+.goui-field-error {
+  display: block;
+  font-size: .78rem;
+  color: #dc2626;
+  margin-top: .25rem;
+}
+
+/* Highlight invalid fields after user interaction */
+.goui-input:user-invalid,
+.goui-textarea:user-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, .12);
+}
+</style>`

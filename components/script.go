@@ -46,7 +46,7 @@ func SyncText(sourceID, targetID, fallback string) Component {
 				var update = function() {
 					target.innerText = src.value || '%s';
 				};
-				src.addEventListener('input', update);
+				['input', 'change'].forEach(ev => src.addEventListener(ev, update));
 				update();
 			}
 		})();

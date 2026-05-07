@@ -18,6 +18,7 @@ type InputComponent struct {
 	Attrs       Attr
 	Watchers    []WatchOption
 	Binding     *BindOption
+	Validation  *Validation
 }
 
 // GetID returns the ID of the input, automatically generating one if empty.
@@ -33,6 +34,9 @@ type Placeholder string
 
 // Type represents the HTML input type (text, color, number, etc).
 type Type string
+
+// Value sets the initial value of an input or dropdown.
+type Value string
 
 // Input creates a new input component with variadic options.
 func Input(opts ...any) *InputComponent {
@@ -59,6 +63,8 @@ func Input(opts ...any) *InputComponent {
 			i.Placeholder = string(v)
 		case Type:
 			i.Type = string(v)
+		case Value:
+			i.Value = string(v)
 		case Name:
 			i.Name = string(v)
 		case ID:
@@ -73,6 +79,8 @@ func Input(opts ...any) *InputComponent {
 			i.Watchers = append(i.Watchers, v)
 		case BindOption:
 			i.Binding = &v
+		case Validation:
+			i.Validation = &v
 		}
 	}
 	return i
@@ -109,9 +117,15 @@ func (i *InputComponent) Render() string {
 			attrs = append(attrs, fmt.Sprintf(`%s="%s"`, k, v))
 		}
 	}
+	if i.Validation != nil {
+		attrs = append(attrs, renderValidationAttrs(i.Validation)...)
+	}
 
 	id := i.GetID()
 	scripts := ""
+	if i.Validation != nil {
+		scripts += renderValidationScript(id, i.Validation)
+	}
 	for _, w := range i.Watchers {
 		scripts += fmt.Sprintf(`
 			<script>

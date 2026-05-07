@@ -3,6 +3,7 @@ package goui
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/M4R4G0N/goUI/components"
 )
@@ -36,7 +37,30 @@ func (a *App) Start(ip, port string) error {
 	for path, comp := range a.Routes {
 		http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprint(w, comp.Render())
+			rendered := comp.Render()
+
+			// Se já for um documento completo (como o componente Page), envia direto
+			if strings.HasPrefix(strings.TrimSpace(rendered), "<!DOCTYPE html>") {
+				fmt.Fprint(w, rendered)
+				return
+			}
+
+			// Caso contrário (como um Div simples), envolve no shell padrão com CSS
+			html := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>goUI App</title>
+    %s
+    %s
+</head>
+<body class="goui-body">
+    %s
+</body>
+</html>`, components.ThemeScript, components.Theme, rendered)
+
+			fmt.Fprint(w, html)
 		})
 	}
 
@@ -46,7 +70,7 @@ func (a *App) Start(ip, port string) error {
 		displayAddr = "localhost:" + port
 	}
 
-	fmt.Printf("\n  %sgoUI v0.1.1%s\n", "\033[1;34m", "\033[0m")
+	fmt.Printf("\n  %sgoUI v0.2.0%s\n", "\033[1;34m", "\033[0m")
 	fmt.Printf("  %s➜%s  %sLocal:%s   %shttp://%s/%s\n", "\033[34m", "\033[0m", "\033[1m", "\033[0m", "\033[36m", displayAddr, "\033[0m")
 	fmt.Printf("  %s➜%s  %sNetwork:%s %suse --host to expose%s\n\n", "\033[34m", "\033[0m", "\033[1m", "\033[0m", "\033[90m", "\033[0m")
 

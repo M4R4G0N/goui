@@ -63,22 +63,24 @@ func (c *CommandPaletteComponent) Render() string {
 					});
 				}
 
-				window.addEventListener('keydown', function(e) {
+				document.addEventListener('keydown', function(e) {
 					if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
 						e.preventDefault();
+						e.stopPropagation();
 						show();
+						return;
 					}
-					if (e.key === 'Escape') hide();
+					if (e.key === 'Escape') { hide(); return; }
 					if (overlay.style.display === 'flex') {
-						if (e.key === 'ArrowDown') { selectedIndex++; render(); }
-						if (e.key === 'ArrowUp') { selectedIndex--; render(); }
+						if (e.key === 'ArrowDown') { e.preventDefault(); selectedIndex++; render(); }
+						if (e.key === 'ArrowUp') { e.preventDefault(); selectedIndex = Math.max(0, selectedIndex - 1); render(); }
 						if (e.key === 'Enter') {
 							var filter = input.value.toLowerCase();
 							var filtered = commands.filter(c => c.label.toLowerCase().includes(filter));
 							if (filtered[selectedIndex]) { filtered[selectedIndex].action(); hide(); }
 						}
 					}
-				});
+				}, true);
 
 				input.addEventListener('input', function() { selectedIndex = 0; render(); });
 				overlay.onclick = function(e) { if (e.target === overlay) hide(); };

@@ -58,6 +58,10 @@ func Dropdown(opts ...any) *DropdownComponent {
 			d.Options = append(d.Options, v)
 		case []Option:
 			d.Options = append(d.Options, v...)
+		case []string:
+			for _, s := range v {
+				d.Options = append(d.Options, Option{Value: s, Label: s})
+			}
 		case multi:
 			d.Multi = bool(v)
 		case Style:
@@ -70,6 +74,13 @@ func Dropdown(opts ...any) *DropdownComponent {
 			d.Size = int(v)
 		case ID:
 			d.ID = string(v)
+		case Value:
+			val := string(v)
+			for i, opt := range d.Options {
+				if opt.Value == val {
+					d.Options[i].Selected = true
+				}
+			}
 		case Attr:
 			d.Attrs = v
 		}
@@ -78,67 +89,85 @@ func Dropdown(opts ...any) *DropdownComponent {
 }
 
 func (d *DropdownComponent) Render() string {
+	id := d.GetID()
 	var b strings.Builder
 
-	// Wrapper
+	// Wrapper seguindo sua sugestão: position: relative
 	wrapperClass := "goui-dropdown"
-	if d.Multi {
-		wrapperClass += " goui-dropdown-multi"
-	}
-	fmt.Fprintf(&b, `<div class="%s">`, wrapperClass)
-
-	// <select> attributes
-	selectAttrs := `class="goui-select"`
-	if d.Name != "" {
-		selectAttrs += fmt.Sprintf(` name="%s"`, d.Name)
-	}
-	if d.Multi {
-		selectAttrs += ` multiple`
-		if d.Size > 0 {
-			selectAttrs += fmt.Sprintf(` size="%d"`, d.Size)
-		}
-	}
 	if d.Class != "" {
-		selectAttrs += fmt.Sprintf(` class="%s"`, d.Class) // NOTE: fixed data-class to class for select
+		wrapperClass += " " + d.Class
 	}
-	if d.GetID() != "" {
-		selectAttrs += fmt.Sprintf(` id="%s"`, d.ID)
-	}
-	if len(d.Attrs) > 0 {
-		for k, v := range d.Attrs {
-			selectAttrs += fmt.Sprintf(` %s="%s"`, k, v)
+	
+	fmt.Fprintf(&b, `<div class="%s" id="wrapper-%s" style="position: relative;">`, wrapperClass, id)
+
+	// Botão que ativa o dropdown
+	selectedLabel := "Selecione..."
+	if len(d.Options) > 0 {
+		for _, opt := range d.Options {
+			if opt.Selected {
+				selectedLabel = opt.Label
+				break
+			}
 		}
 	}
 
-	var styleStr string
-	if len(d.Style) > 0 {
-		styleStr = fmt.Sprintf(` style="%s"`, strings.Join(d.Style.entries(), ";"))
-	}
+	fmt.Fprintf(&b, `
+		<button type="button" class="goui-select" onclick="gouiToggleCustomDropdown('%s')" id="btn-%s">
+			<span class="selected-text">%s</span>
+			<span class="goui-dropdown-arrow">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+			</span>
+		</button>`, id, id, selectedLabel)
 
-	fmt.Fprintf(&b, `<select %s%s>`, selectAttrs, styleStr)
-
-	// Options
+	// Menu de Opções (Oculto por padrão, position: absolute)
+	fmt.Fprintf(&b, `
+		<ul class="goui-dropdown-menu" id="menu-%s" style="display: none; position: absolute; top: 100%%; left: 0; z-index: 1000; margin-top: 4px;">`, id)
+	
 	for _, opt := range d.Options {
-		attrs := fmt.Sprintf(`value="%s"`, opt.Value)
-		if opt.Selected {
-			attrs += ` selected`
-		}
-		if opt.Disabled {
-			attrs += ` disabled`
-		}
-		fmt.Fprintf(&b, `<option %s>%s</option>`, attrs, opt.Label)
+		activeClass := ""
+		if opt.Selected { activeClass = "active" }
+		fmt.Fprintf(&b, `
+			<li class="goui-dropdown-item %s" onclick="gouiSelectOption('%s', '%s', '%s')">%s</li>`, 
+			activeClass, id, opt.Value, opt.Label, opt.Label)
 	}
+	b.WriteString(`</ul>`)
 
-	b.WriteString(`</select>`)
-
-	// Custom arrow icon for single select (hidden for multi)
-	if !d.Multi {
-		b.WriteString(`<span class="goui-dropdown-arrow" aria-hidden="true">`)
-		b.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`)
-		b.WriteString(`</span>`)
-	}
+	// Input oculto para manter compatibilidade com forms
+	fmt.Fprintf(&b, `<input type="hidden" name="%s" id="%s" value="%s">`, d.Name, id, func() string {
+		for _, opt := range d.Options { if opt.Selected { return opt.Value } }
+		return ""
+	}())
 
 	b.WriteString(`</div>`)
+
+	// Lógica JS para o Custom Dropdown
+	b.WriteString(`
+		<script>
+			if (typeof window.gouiToggleCustomDropdown !== 'function') {
+				window.gouiToggleCustomDropdown = function(id) {
+					var menu = document.getElementById('menu-' + id);
+					var allMenus = document.querySelectorAll('.goui-dropdown-menu');
+					allMenus.forEach(m => { if (m.id !== 'menu-' + id) m.style.display = 'none'; });
+					menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+				};
+				window.gouiSelectOption = function(id, val, label) {
+					document.getElementById(id).value = val;
+					document.getElementById('btn-' + id).querySelector('.selected-text').innerText = label;
+					document.getElementById('menu-' + id).style.display = 'none';
+					// Trigger change event for SyncWithForm
+					var input = document.getElementById(id);
+					var event = new Event('change', { bubbles: true });
+					input.dispatchEvent(event);
+				};
+				window.addEventListener('click', function(e) {
+					if (!e.target.closest('.goui-dropdown')) {
+						document.querySelectorAll('.goui-dropdown-menu').forEach(m => m.style.display = 'none');
+					}
+				});
+			}
+		</script>
+	`)
+
 	return b.String()
 }
 

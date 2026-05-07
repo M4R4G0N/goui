@@ -1,7 +1,7 @@
 package components
 
-// FormField creates a standard form group with a label, an input, and an optional help text.
-func FormField(label string, input *InputComponent, helpText string) *DivComponent {
+// FormField creates a standard form group with a label, an input component, and an optional help text.
+func FormField(label string, input Component, helpText string) *DivComponent {
 	items := []Component{
 		Text(label, "label", Class("goui-label")),
 		input,

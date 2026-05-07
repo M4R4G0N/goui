@@ -68,9 +68,19 @@ func (s *SliderComponent) Render() string {
 		styleStr = fmt.Sprintf(` style="%s"`, strings.Join(s.Style.entries(), ";"))
 	}
 
-	return fmt.Sprintf(`
-		<div class="goui-slider-container %s"%s>
-			<input type="range" class="goui-slider" id="%s" 
-				min="%d" max="%d" step="%d" value="%d"%s>
-		</div>`, s.Class, styleStr, s.GetID(), s.Min, s.Max, s.Step, s.Value, renderAttrs(s.Attrs))
+	id := s.GetID()
+	valID := id + "-val"
+	attrs := renderAttrs(s.Attrs)
+
+	return `<div class="goui-slider-container ` + s.Class + `"` + styleStr + `>` +
+		`<div class="goui-flex goui-justify-between goui-mb-10">` +
+		fmt.Sprintf(`<input type="range" class="goui-slider" id="%s" min="%d" max="%d" step="%d" value="%d"%s`+
+			` oninput="document.getElementById('%s').innerText=this.value"`+
+			` style="flex:1;margin-right:15px;">`,
+			id, s.Min, s.Max, s.Step, s.Value, attrs, valID) +
+		fmt.Sprintf(`<span id="%s" class="goui-badge goui-badge-info" style="min-width:40px;text-align:center;">%d</span>`,
+			valID, s.Value) +
+		`</div></div>` +
+		fmt.Sprintf(`<script>(function(){var el=document.getElementById('%s');if(el)document.getElementById('%s').innerText=el.value;})();</script>`,
+			id, valID)
 }

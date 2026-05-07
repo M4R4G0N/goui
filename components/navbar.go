@@ -2,8 +2,7 @@ package components
 
 import "strings"
 
-// NavItem is implemented by anything that can appear in the sidebar nav:
-// Link (plain link) or NavGroupComponent (collapsible group).
+// NavItem is implemented by anything that can appear in the sidebar nav.
 type NavItem interface {
 	renderNavItem() string
 }
@@ -18,15 +17,16 @@ func (l Link) renderNavItem() string {
 	return `<a class="goui-sidebar-link" href="` + l.Href + `">` + l.Text + `</a>`
 }
 
-// NavGroupComponent is a collapsible group of links in the sidebar.
+// NavGroupComponent is a collapsible group of NavItems in the sidebar.
+// It supports nesting: pass another NavGroup as an item to create sub-groups.
 type NavGroupComponent struct {
 	Label string
-	Items []Link
-	Open  bool // start expanded
+	Items []NavItem
+	Open  bool
 }
 
-// NavGroup creates a collapsible group of links in the sidebar.
-func NavGroup(label string, items ...Link) NavGroupComponent {
+// NavGroup creates a collapsible group. Items can be Link or another NavGroup.
+func NavGroup(label string, items ...NavItem) NavGroupComponent {
 	return NavGroupComponent{Label: label, Items: items}
 }
 
@@ -41,26 +41,28 @@ func (g NavGroupComponent) renderNavItem() string {
 	}
 
 	b.WriteString(`<div class="goui-nav-group">`)
-
-	// Toggle button
 	b.WriteString(`<button class="goui-nav-group-btn" onclick="gouiToggleGroup(this)" aria-expanded="`)
 	b.WriteString(expanded)
-	b.WriteString(`">`)
-	b.WriteString(`<span>`)
+	b.WriteString(`"><span>`)
 	b.WriteString(g.Label)
 	b.WriteString(`</span>`)
 	b.WriteString(`<svg class="goui-nav-group-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`)
 	b.WriteString(`</button>`)
 
-	// Collapsible children
 	b.WriteString(`<div class="goui-nav-group-items` + openClass + `">`)
 	b.WriteString(`<div class="goui-nav-group-inner">`)
 	for _, item := range g.Items {
-		b.WriteString(`<a class="goui-sidebar-link goui-sidebar-link-child" href="` + item.Href + `">` + item.Text + `</a>`)
+		switch v := item.(type) {
+		case Link:
+			// Child link — use child style
+			b.WriteString(`<a class="goui-sidebar-link goui-sidebar-link-child" href="` + v.Href + `">` + v.Text + `</a>`)
+		default:
+			// Nested NavGroup — render recursively
+			b.WriteString(item.renderNavItem())
+		}
 	}
 	b.WriteString(`</div>`)
 	b.WriteString(`</div>`)
-
 	b.WriteString(`</div>`)
 	return b.String()
 }
@@ -82,11 +84,10 @@ const iconMoon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
 func (n *NavbarComponent) Render() string {
 	var b strings.Builder
 
-	b.WriteString(`<div class="goui-sidebar-logo">`)
-	b.WriteString(n.Logo)
-	b.WriteString(`</div>`)
-
 	b.WriteString(`<nav class="goui-sidebar-nav">`)
+	if n.Logo != "" {
+		b.WriteString(`<div class="goui-sidebar-title">` + n.Logo + `</div>`)
+	}
 	for _, item := range n.Items {
 		b.WriteString(item.renderNavItem())
 	}

@@ -78,7 +78,7 @@ func (t *TextComponent) Render() string {
 					var src = document.getElementById('%s');
 					if (src) {
 						var action = '%s';
-						src.addEventListener('input', function() {
+						['input', 'change'].forEach(ev => src.addEventListener(ev, function() {
 							var target = document.getElementById('%s');
 							if (!target) return;
 							
@@ -137,7 +137,7 @@ func (t *TextComponent) Render() string {
 					}
 					for (var alias in sources) {
 						var el = document.getElementById(sources[alias]);
-						if (el) el.addEventListener('input', update);
+						if (el) ['input', 'change'].forEach(ev => el.addEventListener(ev, update));
 					}
 					update();
 				})();

@@ -1,115 +1,273 @@
-# goUI 🚀
+# goUI
 
-![Version](https://img.shields.io/badge/version-v0.1.1-blue.svg)
-![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=flat&logo=go&logoColor=white)
+![Version](https://img.shields.io/badge/version-v0.2-blue.svg)
+![Go](https://img.shields.io/badge/go-1.22%2B-%2300ADD8.svg?logo=go&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**goUI** is a lightweight, high-performance Go library for building server-rendered web interfaces using a component-based model and file-based routing.
+**goUI** é uma biblioteca Go para construir interfaces web server-rendered usando um modelo de componentes — sem JavaScript obrigatório, sem build step, sem frameworks externos.
 
-Inspired by simplicity, **goUI** allows Go developers to build rich, reactive UIs entirely in Go — no JavaScript frameworks, no complex build pipelines, just pure Go.
-
----
-
-## 📋 Prerequisites
-
-To use **goUI**, you need **Go 1.22 or later** installed on your system.
-
-### Install Go
-- **Windows**: Download and run the MSI installer from [golang.org/dl](https://go.dev/dl/).
-- **Linux**: Follow the [official installation guide](https://go.dev/doc/install).
-- **macOS**: Download the `.pkg` installer from [golang.org/dl](https://go.dev/dl/).
+Escreva toda a sua UI em Go puro. Componentes, rotas, formulários e validação — tudo em um lugar só.
 
 ---
 
-## 📦 Installation
+## Pré-requisitos
+
+Go **1.22 ou superior**.
+
+- **Windows**: [golang.org/dl](https://go.dev/dl/)
+- **Linux / macOS**: [Guia oficial](https://go.dev/doc/install)
+
+---
+
+## Instalação
 
 ```bash
-go mod init $(basename "$PWD") 
-
-go get github.com/M4R4G0N/goUI@v0.1.1
+go mod init meuapp
+go get github.com/M4R4G0N/goUI@v0.2
 ```
 
-### 🔧 Troubleshooting: 404 / Checksum Errors
-If you see a `404 Not Found` or `checksum verification` error during installation, run these commands to fetch directly from the source:
+### Problemas de checksum ou 404
 
-# try about checksum verification error in the terminal.
 ```bash
 go clean -modcache
-```
-
-**Linux / macOS:**
-```bash
 export GOPROXY=direct
 export GONOSUMDB=github.com/M4R4G0N/goUI
-go get github.com/M4R4G0N/goUI@v0.1.1
-```
-
-**Windows (PowerShell):**
-```powershell
-$env:GOPROXY="direct"
-$env:GONOSUMDB="github.com/M4R4G0N/goUI"
-go get github.com/M4R4G0N/goUI@v0.1.1
+go get github.com/M4R4G0N/goUI@v0.2
 ```
 
 ---
 
-## ⚡ Quick Start
+## Início Rápido
 
-### 1. Scaffold a new project
-```bash
-# Install the CLI
-go install github.com/M4R4G0N/goUI/cmd/goUI@latest
+```go
+package main
 
-# Create your project
-goui new myapp
+import (
+    goui "github.com/M4R4G0N/goUI"
+    "github.com/M4R4G0N/goUI/components"
+)
+
+func main() {
+    app := goui.NewApp()
+
+    app.RegisterRoute("/", components.NewPage(
+        components.Headbar("Meu App"),
+        components.Navbar("goUI",
+            components.Link{Href: "/", Text: "Home"},
+        ),
+        components.Div(
+            components.Text("Olá, goUI!", "h1"),
+            components.Button("Clique aqui", components.Primary),
+        ),
+    ))
+
+    app.Start("", "8080")
+}
 ```
 
-### 2. Run the application
 ```bash
-cd myapp
-go mod tidy
 go run main.go
+# → http://localhost:8080
 ```
-Visit `http://localhost:8080`.
 
 ---
 
-## ✨ Core Features
+## Reatividade Watch/Bind
 
-- **🚀 SSR-First**: Ultra-fast server-side rendering.
-- **⚡ Reactive Watch/Bind**: Component synchronization without manual JS.
-- **🛠️ Premium Components**: Built-in `DataTable`, `CommandPalette` (Ctrl+K), `Snippet` (Syntax Highlighting), `Calendar`, and more.
-- **📂 File-based Routing**: Each file in `pages/` automatically becomes a route via `init()`.
+Sincronize componentes entre si sem escrever JavaScript:
 
----
-
-## 🧱 Example: Reactive UI
 ```go
 func MyPage(title, path string) components.Component {
-    input := components.Input("Type here...", components.ID("my-input"))
-    text := components.Text("Hello", "h1", components.Watch(input, components.WatchText))
+    input := components.Input(components.Placeholder("Digite algo..."))
+    preview := components.Text(input, "h2") // sincroniza automaticamente
 
-    return components.Div(input, text)
+    return components.Div(input, preview)
 }
 ```
 
 ---
 
-## 🛠️ Project Structure
+## Componentes Disponíveis (v0.2)
 
-```
-goUI/
-├── goui.go              # Main App and Server logic
-├── router/              # Automatic file-based routing
-├── components/          # The core component library
-│   ├── command_palette.go
-│   ├── snippet.go (Accordion + Syntax Highlight)
-│   ├── table.go (DataTable)
-│   ├── input.go (Reactive)
-│   └── ...
-└── cmd/goUI/            # CLI Tool
+### Texto & Conteúdo
+| Componente | Descrição |
+|------------|-----------|
+| `Text` | Texto estático ou reativo com qualquer tag HTML |
+| `Badge` | Pill de status com variantes de cor |
+| `Icon` | Ícone Lucide renderizado como SVG inline |
+| `Snippet` | Bloco de código com syntax highlight |
+| `Textarea` | Campo de texto multilinha com auto-resize |
+| `TagInput` | Input com chips/tags digitáveis |
+
+### Botões & Controles
+| Componente | Descrição |
+|------------|-----------|
+| `Button` | Primary, Secondary, Danger, Ghost |
+| `Dropdown` | Select estilizado com seleção única ou múltipla |
+| `Toggle` | Interruptor on/off |
+| `Slider` | Range numérico com min/max/step |
+| `Toast` | Notificações temporárias (success, error, warning, info) |
+| `Checkbox` | Caixa de seleção individual |
+| `CheckboxGroup` | Grupo com múltipla seleção |
+| `RadioGroup` | Grupo de opções exclusivas |
+| `ColorPicker` | Seletor de cor com swatch visual |
+
+### Formulários
+| Componente | Descrição |
+|------------|-----------|
+| `Input` | Campo de texto, email, senha, número, etc. |
+| `Form` | Wrapper de formulário com proteção CSRF |
+| `FormField` | Campo com label e texto de ajuda |
+| `Validation` | Validação declarativa client-side |
+| `ValidateForm` | Validação server-side por campo |
+| `FieldError` | Mensagem de erro inline |
+
+### Dados
+| Componente | Descrição |
+|------------|-----------|
+| `Table` | Tabela estática com headers e linhas |
+| `Calendar` | Seletor de data único |
+| `CalendarRange` | Seletor de intervalo de datas |
+
+### Estrutura
+| Componente | Descrição |
+|------------|-----------|
+| `NewPage` | Documento HTML completo com sidebar e header |
+| `Navbar` + `NavGroup` | Barra lateral com grupos colapsáveis e aninhados |
+| `Headbar` | Barra superior com título |
+| `Tabs` | Abas com ativação por hash de URL |
+| `Card` | Container com estilo de card |
+| `Section` | Seção com título e conteúdo agrupado |
+| `CommandPalette` | Paleta de comandos com busca fuzzy (⌘K) |
+
+### Upload
+| Componente | Descrição |
+|------------|-----------|
+| `FileUploader` | Upload com drag & drop |
+| `DownloadButton` | Botão que dispara download de arquivo |
+
+---
+
+## Formulário com CSRF
+
+```go
+// GET handler:
+token := components.NewCSRFToken(w)
+
+page := components.Form("/submit", "POST",
+    components.CSRF(token),
+    components.FormField("Nome",
+        components.Input(
+            components.Name("nome"),
+            components.Validation{Required: true, MinLen: 2},
+        ),
+        "",
+    ),
+    components.Button("Enviar", components.Primary),
+)
+
+// POST handler:
+if !components.ValidateCSRF(r) {
+    http.Error(w, "Token inválido", 403)
+    return
+}
+
+errs := components.ValidateForm(r, map[string]components.FieldRule{
+    "nome": {Required: true, MinLen: 2},
+})
 ```
 
 ---
 
-## License
-MIT License. Developed by [Marcelo Antonio Goncalves](https://github.com/M4R4G0N).
+## Estrutura do Projeto
+
+```
+goUI/
+├── goui.go                 # App, NewApp, Start, RegisterRoute
+├── router/
+│   └── file_router.go      # RegisterPage, InjectRoutes
+├── components/
+│   ├── component.go        # Interface Component, AutoID, HTML
+│   ├── theme.go            # CSS global + ThemeScript (dark/light)
+│   ├── text.go             # Text, Watch, Bind
+│   ├── input.go            # Input, Validation
+│   ├── button.go           # Button, Primary, Secondary, Danger, Ghost
+│   ├── dropdown.go         # Dropdown, Option, Multi
+│   ├── toggle.go           # Toggle
+│   ├── slider.go           # Slider, Min, Max, Step
+│   ├── checkbox.go         # Checkbox, CheckboxGroup, CheckboxItem
+│   ├── radio.go            # RadioGroup, RadioItem
+│   ├── textarea.go         # Textarea, Rows
+│   ├── tag_input.go        # TagInput
+│   ├── color_picker.go     # ColorPicker
+│   ├── form.go             # Form, CSRF, Validation, ValidateForm, FieldError
+│   ├── navbar.go           # Navbar, NavGroup, Link, NavItem
+│   ├── tabs.go             # Tabs, TabItem (hash-based activation)
+│   ├── badge.go            # Badge, SuccessBadge, ErrorBadge…
+│   ├── icon.go             # Icon (Lucide)
+│   ├── snippet.go          # Snippet (syntax highlight)
+│   ├── table.go            # Table
+│   ├── calendar.go         # Calendar, CalendarRange
+│   ├── section.go          # Section
+│   ├── card.go             # Card
+│   ├── command_palette.go  # CommandPalette
+│   ├── toast.go            # ToastContainer, ShowToast
+│   ├── fileupload.go       # FileUploader
+│   ├── download.go         # DownloadButton
+│   └── script.go           # Watch, Bind, SyncText, SyncRange, SyncCSV…
+└── examples/
+    └── helloworld/         # Documentação interativa com playground
+```
+
+---
+
+## File-Based Routing
+
+Use `init()` para registrar páginas automaticamente:
+
+```go
+// pages/minha_pagina.go
+package pages
+
+import (
+    "github.com/M4R4G0N/goUI/components"
+    "github.com/M4R4G0N/goUI/router"
+)
+
+func init() {
+    router.RegisterPage("/minha-rota", "Título — goUI", MinhaPagina)
+}
+
+func MinhaPagina(title, path string) components.Component {
+    return components.Div(
+        components.Text(title, "h1"),
+    )
+}
+```
+
+```go
+// main.go
+import _ "meuapp/pages" // dispara todos os init()
+
+router.InjectRoutes(app, func(title, path string, body components.Component) components.Component {
+    return components.NewPage(
+        components.Headbar(title),
+        components.Navbar("App", components.Link{Href: "/", Text: "Home"}),
+        body,
+    )
+})
+```
+
+---
+
+## Roadmap
+
+Veja o roadmap completo com versões planejadas e checklist detalhado em [ROADMAP.md](./ROADMAP.md).
+
+**Próximo: v0.3** — Grid/Columns, Modal, Drawer, Accordion, Breadcrumb, Pagination.
+
+---
+
+## Licença
+
+MIT — desenvolvido por [Marcelo Antonio Goncalves](https://github.com/M4R4G0N).
