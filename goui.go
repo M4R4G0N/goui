@@ -70,7 +70,7 @@ func (a *App) Start(ip, port string) error {
 		displayAddr = "localhost:" + port
 	}
 
-	fmt.Printf("\n  %sgoUI v0.2.0%s\n", "\033[1;34m", "\033[0m")
+	fmt.Printf("\n  %sgoUI v0.2.1%s\n", "\033[1;34m", "\033[0m")
 	fmt.Printf("  %s➜%s  %sLocal:%s   %shttp://%s/%s\n", "\033[34m", "\033[0m", "\033[1m", "\033[0m", "\033[36m", displayAddr, "\033[0m")
 	fmt.Printf("  %s➜%s  %sNetwork:%s %suse --host to expose%s\n\n", "\033[34m", "\033[0m", "\033[1m", "\033[0m", "\033[90m", "\033[0m")
 

@@ -2,7 +2,7 @@
 
 Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planejado `[ ]`.
 
-> Status atual: **v0.2** — componentes de formulário completos, proteção CSRF, validação declarativa e documentação interativa com playground.
+> Status atual: **v0.2.1** — componentes de formulário completos, proteção CSRF, validação declarativa e documentação interativa com playground.
 > Em desenvolvimento ativo: **ProgressBar** (entregue) · **SSE / canal de streaming** (em andamento).
 
 ---
@@ -20,7 +20,7 @@ Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planej
 - [x] Tema dark/light com `ThemeScript` + `Theme` CSS
 - [x] Sistema de layout `NewPage`, `LayoutNarrow`, `LayoutFull`, `LayoutCentered`
 
-### v0.2 — Formulários Completos & Documentação Interativa ✅
+### v0.2.1 — Formulários Completos & Documentação Interativa ✅
 - [x] `Checkbox` — caixa de seleção individual
 - [x] `CheckboxGroup` — grupo com múltipla seleção
 - [x] `RadioGroup` com `RadioItem` — seleção exclusiva

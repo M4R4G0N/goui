@@ -1,6 +1,6 @@
 # goUI
 
-![Version](https://img.shields.io/badge/version-v0.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.2.1-blue.svg)
 ![Go](https://img.shields.io/badge/go-1.22%2B-%2300ADD8.svg?logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -23,7 +23,7 @@ Go **1.22 ou superior**.
 
 ```bash
 go mod init meuapp
-go get github.com/M4R4G0N/goUI@v0.2
+go get github.com/M4R4G0N/goUI@v0.2.1
 ```
 
 ### Problemas de checksum ou 404
@@ -32,7 +32,7 @@ go get github.com/M4R4G0N/goUI@v0.2
 go clean -modcache
 export GOPROXY=direct
 export GONOSUMDB=github.com/M4R4G0N/goUI
-go get github.com/M4R4G0N/goUI@v0.2
+go get github.com/M4R4G0N/goUI@v0.2.1
 ```
 
 ---
@@ -87,7 +87,7 @@ func MyPage(title, path string) components.Component {
 
 ---
 
-## Componentes Disponíveis (v0.2)
+## Componentes Disponíveis (v0.2.1)
 
 ### Texto & Conteúdo
 | Componente | Descrição |
