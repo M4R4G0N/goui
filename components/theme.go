@@ -1902,4 +1902,39 @@ input:checked + .goui-toggle-slider:before {
   border-color: #dc2626;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, .12);
 }
+
+/* ─── Progress Bar ──────────────────────────────────────────────────────── */
+.goui-progress-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.goui-progress {
+  width: 100%;
+  height: 10px;
+  background: var(--goui-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.goui-progress-fill {
+  height: 100%;
+  background: var(--goui-primary);
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+.goui-progress-fill-success { background: #10b981; }
+.goui-progress-fill-error   { background: #ef4444; }
+.goui-progress-fill-warning { background: #f59e0b; }
+.goui-progress-fill-info    { background: #3b82f6; }
+
+.goui-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: .78rem;
+  color: var(--goui-text-muted);
+}
 </style>`

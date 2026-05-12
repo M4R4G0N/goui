@@ -106,6 +106,7 @@ func MyPage(title, path string) components.Component {
 | `Dropdown` | Select estilizado com seleção única ou múltipla |
 | `Toggle` | Interruptor on/off |
 | `Slider` | Range numérico com min/max/step |
+| `ProgressBar` | Barra de progresso com `SetTotal` / `Add` e 5 variantes de cor |
 | `Toast` | Notificações temporárias (success, error, warning, info) |
 | `Checkbox` | Caixa de seleção individual |
 | `CheckboxGroup` | Grupo com múltipla seleção |
@@ -179,6 +180,78 @@ errs := components.ValidateForm(r, map[string]components.FieldRule{
 
 ---
 
+## ProgressBar com SSE
+
+Barra de progresso server-side com atualização em tempo real via **Server-Sent Events**.  
+O frontend **nunca precisa fazer polling** — cada `bar.Add()` empurra o estado automaticamente para todos os clientes conectados.
+
+```go
+bar := components.ProgressBar(components.ProgressSuccess)
+bar.SetTotal(100)
+
+// Registra o gatilho: botão → HTTP → backend inicia goroutine
+components.RegisterAction(btnID, func(r *http.Request) string {
+    go func() {
+        for i := 1; i <= bar.Total; i++ {
+            bar.Add()                    // → SSE broadcast automático
+            time.Sleep(25 * time.Millisecond)
+        }
+        // envia evento nomeado ao fim — frontend pode reagir
+        components.SSEBroadcastEvent(bar.GetID(), "done", `{"done":true}`)
+    }()
+    return "started"
+})
+```
+
+`bar.Render()` injeta um `<script>` com `EventSource` automaticamente — zero configuração manual no frontend.
+
+### Como funciona
+
+```
+Botão click ──► goui.action(btnID)   [HTTP]   ──► backend inicia goroutine
+                                                         │
+                                                  bar.Add() loop
+                                                         │ SSEBroadcast automático
+                                     ◄───────── /api/goui/stream?id=X
+EventSource (aberto pelo Render)                         │
+  ├─ onmessage → atualiza fill + label no DOM            │
+  └─ addEventListener("done") → dispara CustomEvent      ▼
+                                                   fim do loop
+```
+
+### Regras do `Add`
+
+`Add` aceita qualquer inteiro positivo. Valores `0` ou negativos causam **panic** imediato com mensagem clara.
+
+```go
+bar.Add()    // +1 (padrão)
+bar.Add(10)  // +10
+bar.Add(0)   // panic: value must be positive (> 0), got 0
+bar.Add(-1)  // panic: value must be positive (> 0), got -1
+```
+
+### Variantes
+
+`ProgressDefault` · `ProgressSuccess` · `ProgressError` · `ProgressWarning` · `ProgressInfo`
+
+```go
+components.ProgressBar(components.ProgressInfo, false) // sem label current/total/%
+```
+
+### SSE direta — sem ProgressBar
+
+Para enviar qualquer dado via SSE a partir de qualquer componente:
+
+```go
+// broadcast simples
+components.SSEBroadcast(id, `{"valor": 42}`)
+
+// evento nomeado (o frontend ouve com addEventListener("meuEvento", ...))
+components.SSEBroadcastEvent(id, "meuEvento", `{"ok": true}`)
+```
+
+---
+
 ## Estrutura do Projeto
 
 ```
@@ -187,7 +260,7 @@ goUI/
 ├── router/
 │   └── file_router.go      # RegisterPage, InjectRoutes
 ├── components/
-│   ├── component.go        # Interface Component, AutoID, HTML
+│   ├── component.go        # Interface Component, AutoID, HTML, RegisterAction
 │   ├── theme.go            # CSS global + ThemeScript (dark/light)
 │   ├── text.go             # Text, Watch, Bind
 │   ├── input.go            # Input, Validation
@@ -195,6 +268,7 @@ goUI/
 │   ├── dropdown.go         # Dropdown, Option, Multi
 │   ├── toggle.go           # Toggle
 │   ├── slider.go           # Slider, Min, Max, Step
+│   ├── progress_bar.go     # ProgressBar, SetTotal, Add, ProgressVariant
 │   ├── checkbox.go         # Checkbox, CheckboxGroup, CheckboxItem
 │   ├── radio.go            # RadioGroup, RadioItem
 │   ├── textarea.go         # Textarea, Rows
@@ -264,7 +338,7 @@ router.InjectRoutes(app, func(title, path string, body components.Component) com
 
 Veja o roadmap completo com versões planejadas e checklist detalhado em [ROADMAP.md](./ROADMAP.md).
 
-**Próximo: v0.3** — Grid/Columns, Modal, Drawer, Accordion, Breadcrumb, Pagination.
+**Próximo: v0.3** — Grid/Columns, Modal, Drawer, Accordion, Breadcrumb, Pagination. SSE em desenvolvimento ativo.
 
 ---
 

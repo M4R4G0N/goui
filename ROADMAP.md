@@ -3,6 +3,7 @@
 Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planejado `[ ]`.
 
 > Status atual: **v0.2** — componentes de formulário completos, proteção CSRF, validação declarativa e documentação interativa com playground.
+> Em desenvolvimento ativo: **ProgressBar** (entregue) · **SSE / canal de streaming** (em andamento).
 
 ---
 
@@ -56,7 +57,8 @@ Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planej
 
 ### v0.5 — Exibição e Feedback Visual
 - [ ] `Alert`, `Tooltip`, `Avatar`
-- [ ] `ProgressBar`, `Skeleton` (loading state)
+- [x] `ProgressBar` — barra de progresso com `SetTotal` / `Add`, 5 variantes de cor, label `current/total/%`, validação de valor positivo
+- [ ] `Skeleton` (loading state)
 - [ ] `Stat` — card de métrica com variação (KPI)
 - [ ] `Timeline`
 - [ ] Múltiplos temas pré-definidos e `CustomTheme`
@@ -69,8 +71,15 @@ Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planej
 - [ ] Upload automático de mídia gravada para o backend
 - [ ] Seleção de dispositivo de entrada e formatos configuráveis
 
-### v0.7 — Reatividade Server-Side
-- [ ] Server-Sent Events (SSE) para atualizações em tempo real
+### v0.3.1 — SSE / Streaming Server-Side (em andamento)
+- [ ] Canal SSE robusto — `SSEStream` com registry global thread-safe (`sync.RWMutex`)
+- [ ] Endpoint `/api/goui/stream?id=X` com `http.Flusher` e heartbeat automático
+- [ ] `ProgressBar.Add()` empurra estado via SSE automaticamente (sem chamada separada)
+- [ ] Cleanup automático de clientes desconectados
+- [ ] JS nativo via `EventSource` — zero dependências externas
+- [ ] Graceful shutdown de streams ao encerrar a aplicação
+
+### v0.7 — Reatividade Server-Side (avançado)
 - [ ] `SyncVisible` e `SyncDisabled` — visibilidade e estado por valor
 - [ ] WebSocket nativo integrado ao sistema de componentes
 - [ ] `WatchURL` — deep link via parâmetros de URL
@@ -177,7 +186,7 @@ Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planej
 - [ ] `Alert(message, type)` — banner de alerta inline (info, warning, error, success)
 - [ ] `Tooltip(trigger, text)` — texto flutuante ao passar o mouse
 - [ ] `Avatar(src, fallback)` — imagem de perfil com fallback em iniciais
-- [ ] `ProgressBar(value, max)` — barra de progresso estática ou animada
+- [x] `ProgressBar(opts...)` — barra de progresso com `SetTotal(n)` / `Add(n...)`, 5 variantes de cor (Default, Success, Error, Warning, Info), label `current/total/%` configurável, validação de passo positivo com panic descritivo
 - [ ] `Skeleton(opts...)` — placeholder de carregamento (loading state)
 - [ ] `Timeline(events...)` — exibição cronológica de eventos
 - [ ] `Stat(label, value, delta)` — card de métrica com variação (KPI)
@@ -249,7 +258,7 @@ Acompanhamento de tudo que já foi construído `[x]` e do que ainda está planej
 - [ ] `SyncVisible(srcID, targetID, condition)` — mostra/esconde componente com base em valor
 - [ ] `SyncDisabled(srcID, targetID, condition)` — desabilita componente com base em valor
 - [ ] `WatchURL` — atualiza parâmetros da URL ao mudar estado (deep link)
-- [ ] Server-Sent Events (SSE) para atualizações em tempo real sem WebSocket
+- [ ] Server-Sent Events (SSE) — canal robusto com `SSEStream`, endpoint `/api/goui/stream`, push automático em `Add()` (em andamento — v0.3.1)
 - [ ] WebSocket nativo integrado ao sistema de componentes
 
 ### Ações do `Watch`

@@ -177,12 +177,13 @@ func (t *TableComponent) Render() string {
 					var btn = document.getElementById('%s');
 					var tbl = document.getElementById('%s').querySelector('tbody');
 					var inputIDs = [%s];
-					
+					var _seq = 0;
+
 					if (btn && tbl) {
 						btn.addEventListener('click', function() {
 							var row = document.createElement('tr');
 							var hasContent = false;
-							
+
 							inputIDs.forEach(function(id) {
 								var el = document.getElementById(id);
 								var td = document.createElement('td');
@@ -190,41 +191,63 @@ func (t *TableComponent) Render() string {
 									td.innerText = '-';
 								} else {
 									hasContent = true;
-									if (el.tagName === 'SELECT') {
-										// Pega o wrapper (.goui-dropdown) para manter o estilo e a seta
-										var wrapper = el.closest('.goui-dropdown') || el;
-										td.innerHTML = wrapper.outerHTML;
-										var newSel = td.querySelector('select');
-										if (newSel) {
-											newSel.value = el.value;
-											newSel.id = ''; // Evita IDs duplicados na tabela
+									var dropWrapper = el.closest ? el.closest('.goui-dropdown') : null;
+									if (dropWrapper) {
+										// Custom dropdown — clona e re-gera IDs
+										// O menu pode ter sido portado ao body (gouiToggleCustomDropdown),
+										// então buscamos por ID em vez de confiar no cloneNode.
+										var origId  = el.id;
+										var uid     = 'dd-' + Date.now() + '-' + (++_seq);
+										var clone   = dropWrapper.cloneNode(true);
+										clone.id    = 'wrapper-' + uid;
+										var hi = clone.querySelector('input[type="hidden"]');
+										if (hi) { hi.id = uid; hi.value = el.value; }
+										var cBtn = clone.querySelector('button');
+										if (cBtn) {
+											cBtn.id = 'btn-' + uid;
+											cBtn.setAttribute('onclick', "gouiToggleCustomDropdown('" + uid + "')");
 										}
+										// Remove qualquer menu stale do clone
+										var stale = clone.querySelector('.goui-dropdown-menu');
+										if (stale) stale.remove();
+										// Clona o menu de onde quer que esteja (wrapper ou body)
+										var origMenu = document.getElementById('menu-' + origId);
+										if (origMenu) {
+											var mc = origMenu.cloneNode(true);
+											mc.id = 'menu-' + uid;
+											mc.style.display  = 'none';
+											mc.style.position = 'absolute';
+											mc.querySelectorAll('.goui-dropdown-item').forEach(function(li) {
+												var oc = li.getAttribute('onclick') || '';
+												li.setAttribute('onclick', oc.replace(/gouiSelectOption\('[^']*'/, "gouiSelectOption('" + uid + "'"));
+											});
+											clone.appendChild(mc);
+										}
+										td.appendChild(clone);
 									} else if (el.type === 'checkbox') {
-										// Clona o toggle
-										var wrapper = el.closest('.goui-toggle') || el;
-										td.innerHTML = wrapper.outerHTML;
-										var chk = td.querySelector('input');
-										chk.checked = el.checked;
-										chk.id = '';
+										// Toggle — clona o label wrapper
+										var uid = 'tgl-' + Date.now() + '-' + (++_seq);
+										var wrapper = el.closest('label') || el.parentElement;
+										var clone = wrapper.cloneNode(true);
+										var chk = clone.querySelector('input[type="checkbox"]');
+										if (chk) { chk.checked = el.checked; chk.id = uid; }
+										td.appendChild(clone);
 									} else {
 										td.innerText = el.value;
 									}
 								}
 								row.appendChild(td);
 							});
-							
+
 							if (hasContent) {
-								// Sincroniza com modo edição mestre
 								var masterToggle = document.getElementById('toggle-edit-%s');
 								var canEdit = masterToggle ? masterToggle.checked : false;
-								row.querySelectorAll('td').forEach(c => c.contentEditable = canEdit);
-								row.querySelectorAll('input, select').forEach(i => i.disabled = !canEdit);
-								
+								row.querySelectorAll('td').forEach(function(c) { c.contentEditable = canEdit; });
+								row.querySelectorAll('td button, td input:not([type="hidden"]), td select').forEach(function(el) { el.disabled = !canEdit; });
 								tbl.appendChild(row);
-								// Reset inputs de texto
 								inputIDs.forEach(function(id) {
 									var el = document.getElementById(id);
-									if (el && el.type === 'text') el.value = '';
+									if (el && (el.type === 'text' || el.type === 'number')) el.value = '';
 								});
 							}
 						});
@@ -317,14 +340,15 @@ func (t *TableComponent) Render() string {
 				if (typeof window.toggleTableEdit !== 'function') {
 					window.toggleTableEdit = function(tableID, canEdit) {
 						var table = document.getElementById(tableID);
-						var cells = table.querySelectorAll('td');
-						cells.forEach(function(c) {
+						var tbody = table.querySelector('tbody');
+						if (!tbody) return;
+						tbody.querySelectorAll('td').forEach(function(c) {
 							c.contentEditable = canEdit;
 						});
-						// Também desabilita/habilita inputs e selects dentro da tabela
-						var controls = table.querySelectorAll('input, select');
-						controls.forEach(function(ctrl) {
-							ctrl.disabled = !canEdit;
+						// desabilita/habilita todos os controles interativos nas células
+						// (button cobre dropdown customizado; exclui input[type=hidden])
+						tbody.querySelectorAll('td button, td input:not([type="hidden"]), td select').forEach(function(el) {
+							el.disabled = !canEdit;
 						});
 					};
 				}

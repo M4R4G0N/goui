@@ -146,24 +146,62 @@ func (d *DropdownComponent) Render() string {
 			if (typeof window.gouiToggleCustomDropdown !== 'function') {
 				window.gouiToggleCustomDropdown = function(id) {
 					var menu = document.getElementById('menu-' + id);
-					var allMenus = document.querySelectorAll('.goui-dropdown-menu');
-					allMenus.forEach(m => { if (m.id !== 'menu-' + id) m.style.display = 'none'; });
-					menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+					var btn  = document.getElementById('btn-'  + id);
+					if (!menu || !btn) return;
+					var isOpen = menu.style.display === 'block';
+					// fecha todos os outros menus
+					document.querySelectorAll('.goui-dropdown-menu').forEach(function(m) {
+						m.style.display = 'none';
+					});
+					if (isOpen) return;
+					// portal: move o menu para body e posiciona via getBoundingClientRect
+					if (menu.parentNode !== document.body) {
+						document.body.appendChild(menu);
+					}
+					var r = btn.getBoundingClientRect();
+					menu.style.cssText =
+						'display:block;position:fixed;' +
+						'top:'  + (r.bottom + 4) + 'px;' +
+						'left:' + r.left + 'px;' +
+						'min-width:' + r.width + 'px;' +
+						'z-index:999999;' +
+						'margin:0;';
 				};
 				window.gouiSelectOption = function(id, val, label) {
-					document.getElementById(id).value = val;
-					document.getElementById('btn-' + id).querySelector('.selected-text').innerText = label;
-					document.getElementById('menu-' + id).style.display = 'none';
-					// Trigger change event for SyncWithForm
-					var input = document.getElementById(id);
-					var event = new Event('change', { bubbles: true });
-					input.dispatchEvent(event);
+					var hi  = document.getElementById(id);
+					var btn = document.getElementById('btn-' + id);
+					var menu = document.getElementById('menu-' + id);
+					if (hi)   hi.value = val;
+					if (btn)  btn.querySelector('.selected-text').innerText = label;
+					if (menu) menu.style.display = 'none';
+					if (hi) hi.dispatchEvent(new Event('change', { bubbles: true }));
+					// atualiza item ativo
+					if (menu) {
+						menu.querySelectorAll('.goui-dropdown-item').forEach(function(li) {
+							li.classList.toggle('active', li.innerText.trim() === label);
+						});
+					}
 				};
-				window.addEventListener('click', function(e) {
-					if (!e.target.closest('.goui-dropdown')) {
-						document.querySelectorAll('.goui-dropdown-menu').forEach(m => m.style.display = 'none');
+				// fecha ao clicar fora
+				document.addEventListener('click', function(e) {
+					if (!e.target.closest('.goui-dropdown') && !e.target.closest('.goui-dropdown-menu')) {
+						document.querySelectorAll('.goui-dropdown-menu').forEach(function(m) {
+							m.style.display = 'none';
+						});
 					}
 				});
+				// reposiciona ao rolar / redimensionar
+				window.addEventListener('scroll', function() {
+					document.querySelectorAll('.goui-dropdown-menu').forEach(function(m) {
+						if (m.style.display !== 'block') return;
+						var ddId = m.id.replace('menu-', '');
+						var btn = document.getElementById('btn-' + ddId);
+						if (!btn) { m.style.display = 'none'; return; }
+						var r = btn.getBoundingClientRect();
+						m.style.top  = (r.bottom + 4) + 'px';
+						m.style.left = r.left + 'px';
+					});
+				}, true);
 			}
 		</script>
 	`)
