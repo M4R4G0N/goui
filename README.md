@@ -289,8 +289,6 @@ goUI/
 │   ├── fileupload.go       # FileUploader
 │   ├── download.go         # DownloadButton
 │   └── script.go           # Watch, Bind, SyncText, SyncRange, SyncCSV…
-└── examples/
-    └── helloworld/         # Documentação interativa com playground
 ```
 
 ---
